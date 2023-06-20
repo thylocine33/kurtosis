@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.79.0](https://github.com/kurtosis-tech/kurtosis/compare/0.78.5...0.79.0) (2023-06-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* removed workdir from run_sh and fixed some typos on the doc ([#739](https://github.com/kurtosis-tech/kurtosis/issues/739))
+
+### Bug Fixes
+
+* removed workdir from run_sh and fixed some typos on the doc ([#739](https://github.com/kurtosis-tech/kurtosis/issues/739)) ([6406f10](https://github.com/kurtosis-tech/kurtosis/commit/6406f10bb1a96cdce429d2c4750977fb86f2d098))
+* typos ([#742](https://github.com/kurtosis-tech/kurtosis/issues/742)) ([800e523](https://github.com/kurtosis-tech/kurtosis/commit/800e52364bc62f1dfa1b48bdcae9b01d4d2af7fe))
+
 ## [0.78.5](https://github.com/kurtosis-tech/kurtosis/compare/0.78.4...0.78.5) (2023-06-15)
 
 
