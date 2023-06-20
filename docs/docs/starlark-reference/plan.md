@@ -408,6 +408,9 @@ The `run_sh` instruction executes a one-time execution task. It runs the bash co
             # copies the entire directory into a file artifact
             "/src",
         ],
+
+
+        wait="180s"
     )
 
     plan.print(result.code)  # returns the future reference to the code
