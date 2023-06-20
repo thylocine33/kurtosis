@@ -43,7 +43,7 @@ const (
 	shellCommand = "/bin/sh"
 
 	StoreFilesKey                 = "store"
-	DefaultWaitTimeoutDurationStr = "30s"
+	DefaultWaitTimeoutDurationStr = "180s"
 	DisableWaitTimeoutDurationStr = ""
 )
 
@@ -397,7 +397,7 @@ func executeWithWait(ctx context.Context, builtin *RunShCapabilities, commandToR
 	case err := <-errChan:
 		return nil, err
 	case <-timeDuration: // Timeout duration
-		return nil, stacktrace.NewError("The exec request time out after %v seconds", parsedTimeout.Seconds())
+		return nil, stacktrace.NewError("The exec request timed out after %v seconds", parsedTimeout.Seconds())
 	}
 }
 
