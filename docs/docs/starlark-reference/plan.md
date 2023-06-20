@@ -409,7 +409,15 @@ The `run_sh` instruction executes a one-time execution task. It runs the bash co
             "/src",
         ],
 
-
+        # The time to allow for the command to complete. If the command takes longer than this,
+        # Kurtosis will kill the command and mark it as failed.
+        # You may specify a custom wait timeout duration or disable the feature entirely.
+        # You may specify a custom wait timeout duration with a string:
+        #  wait = "2m"
+        # Or, you can disable this feature by setting the value to None:
+        #  wait = None
+        # The feature is enabled by default with a default timeout of 180s
+        # OPTIONAL (Default: "180s")
         wait="180s"
     )
 
