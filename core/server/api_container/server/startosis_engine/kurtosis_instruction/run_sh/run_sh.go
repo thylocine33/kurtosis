@@ -13,7 +13,6 @@ import (
 	"github.com/kurtosis-tech/kurtosis/core/server/api_container/server/startosis_engine/kurtosis_starlark_framework/kurtosis_plan_instruction"
 	"github.com/kurtosis-tech/kurtosis/core/server/api_container/server/startosis_engine/kurtosis_types"
 	"github.com/kurtosis-tech/kurtosis/core/server/api_container/server/startosis_engine/runtime_value_store"
-	"github.com/kurtosis-tech/kurtosis/core/server/api_container/server/startosis_engine/starlark_warning"
 	"github.com/kurtosis-tech/kurtosis/core/server/api_container/server/startosis_engine/startosis_errors"
 	"github.com/kurtosis-tech/kurtosis/core/server/api_container/server/startosis_engine/startosis_validator"
 	"github.com/kurtosis-tech/stacktrace"
@@ -44,7 +43,7 @@ const (
 	shellCommand = "/bin/sh"
 
 	StoreFilesKey                 = "store"
-	DefaultWaitTimeoutDurationStr = "180s"
+	DefaultWaitTimeoutDurationStr = "30s"
 	DisableWaitTimeoutDurationStr = ""
 )
 
@@ -264,11 +263,11 @@ func (builtin *RunShCapabilities) Validate(_ *builtin_argument.ArgumentValuesSet
 //   Make task as its own entity instead of currently shown under services
 func (builtin *RunShCapabilities) Execute(ctx context.Context, _ *builtin_argument.ArgumentValuesSet) (string, error) {
 	// create work directory and cd into that directory
-	commandRunCommand, err := getCommandToRun(builtin)
+	commandToRun, err := getCommandToRun(builtin)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "error occurred while preparing the sh command to execute on the image")
 	}
-	createDefaultDirectory := []string{shellCommand, "-c", commandRunCommand}
+	fullCommandToRun := []string{shellCommand, "-c", commandToRun}
 	serviceConfigBuilder := services.NewServiceConfigBuilder(builtin.image)
 	serviceConfigBuilder.WithFilesArtifactMountDirpaths(builtin.files)
 	// This make sure that the container does not stop as soon as it starts
@@ -285,7 +284,7 @@ func (builtin *RunShCapabilities) Execute(ctx context.Context, _ *builtin_argume
 	}
 
 	// run the command passed in by user in the container
-	createDefaultDirectoryResult, err := executeWithWait(ctx, builtin, createDefaultDirectory)
+	createDefaultDirectoryResult, err := executeWithWait(ctx, builtin, fullCommandToRun)
 	if err != nil {
 		return "", stacktrace.Propagate(err, fmt.Sprintf("error occurred while executing one time task command: %v ", builtin.run))
 	}
@@ -302,7 +301,7 @@ func (builtin *RunShCapabilities) Execute(ctx context.Context, _ *builtin_argume
 	if createDefaultDirectoryResult.GetExitCode() != 0 {
 		return "", stacktrace.NewError(
 			"error occurred and shell command: %q exited with code %d with output %q",
-			commandRunCommand, createDefaultDirectoryResult.GetExitCode(), createDefaultDirectoryResult.GetOutput())
+			commandToRun, createDefaultDirectoryResult.GetExitCode(), createDefaultDirectoryResult.GetOutput())
 	}
 
 	if builtin.fileArtifactNames != nil && builtin.pathToFileArtifacts != nil {
@@ -365,16 +364,20 @@ func getCommandToRun(builtin *RunShCapabilities) (string, error) {
 }
 
 func executeWithWait(ctx context.Context, builtin *RunShCapabilities, commandToRun []string) (*exec_result.ExecResult, error) {
+	// Wait is set to None
+	if builtin.wait == DisableWaitTimeoutDurationStr {
+		return builtin.serviceNetwork.RunExec(ctx, builtin.name, commandToRun)
+	}
+
 	resultChan := make(chan *exec_result.ExecResult, 1)
 	errChan := make(chan error, 1)
 
 	timoutStr := builtin.wait
 	parsedTimeout, parseErr := time.ParseDuration(timoutStr)
 	if parseErr != nil {
-		return nil, startosis_errors.WrapWithInterpretationError(parseErr, "An error occurred when parsing timeout '%v'", timoutStr)
+		return nil, startosis_errors.WrapWithInterpretationError(parseErr, "an error occurred when parsing timeout '%v'", timoutStr)
 	}
 
-	starlark_warning.PrintOnceAtTheEndOfExecutionf("%v", parsedTimeout.Minutes())
 	timeDuration := time.After(parsedTimeout)
 	contextWithDeadline, cancelContext := context.WithTimeout(ctx, parsedTimeout)
 	defer cancelContext()

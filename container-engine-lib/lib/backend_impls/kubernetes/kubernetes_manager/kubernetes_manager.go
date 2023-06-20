@@ -59,6 +59,7 @@ const (
 	shouldAddTimestampsWhenPrintingPodInfo       = true
 
 	listOptionsTimeoutSeconds int64 = 10
+	contextDeadlineExceeded         = "context deadline exceeded"
 )
 
 var (
@@ -192,9 +193,9 @@ func (manager *KubernetesManager) UpdateService(
 	ctx context.Context,
 	namespaceName string,
 	serviceName string,
-	// We use a configurator, rather than letting the user pass in their own ServiceApplyConfiguration, so that we ensure
-	// they use the constructor (and don't do struct instantiation and forget to add the namespace, object name, etc. which
-	// would result in removing the object name)
+// We use a configurator, rather than letting the user pass in their own ServiceApplyConfiguration, so that we ensure
+// they use the constructor (and don't do struct instantiation and forget to add the namespace, object name, etc. which
+// would result in removing the object name)
 	updateConfigurator func(configuration *applyconfigurationsv1.ServiceApplyConfiguration),
 ) (*apiv1.Service, error) {
 	updatesToApply := applyconfigurationsv1.Service(serviceName, namespaceName)
@@ -1268,6 +1269,12 @@ func (manager *KubernetesManager) RunExecCommandWithContext(
 	}); err != nil {
 		// Kubernetes returns the exit code of the command via a string in the error message, so we have to extract it
 		statusError := err.Error()
+
+		// this means that context deadline has exceeded
+		if strings.Contains(statusError, contextDeadlineExceeded) {
+			return 1, stacktrace.Propagate(err, "There was an error while executing commands on the container")
+		}
+
 		exitCode, err := getExitCodeFromStatusMessage(statusError)
 		if err != nil {
 			return exitCode, stacktrace.Propagate(
